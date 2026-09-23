@@ -30,12 +30,24 @@ Il produit un dashboard HTML à jour, en recalculant par zone de santé :
   de moins de 15 ans (décision projet ; ne jamais utiliser 2).
 - **Alias de zones** : `RUASHI` (dashboard) = `RWASHI` (fichiers).
 
+## Version publique et bandeau (implémenté)
+
+- **Version PUBLIC** : produite automatiquement à partir de la version MANAGERS.
+  Chaque `"Nom (CODE)"` devient `"CODE"` (codes AT-/AP-). Validé : reproduit
+  exactement la version publique de référence (0 nom résiduel, 2 377 codes).
+- **Bandeau `__META__`** : mise à jour de `version`, `semaine`, `date_maj`, ajout
+  d'une entrée de `changelog` en tête, et bascule du numéro de version du titre et
+  du pied de page (`Dashboard PFA vX.Y`).
+
 ## Ce qui est REPORTÉ (passe de scoring périodique, pas hebdomadaire)
 
 Conformément à la consigne, la mise à jour hebdomadaire **ne recalcule pas**
 `cat` (CONFORME / SOUS-SEUIL), `flags`, `priority`, `risk_*` : ce sont des indices
 composites (à part de jugement) recalculés lors d'une passe de scoring séparée.
-Le générateur les **reporte** du gabarit précédent.
+`aq26` (% selles adéquates) relève également de cette passe (la consigne ne le
+liste pas parmi les champs hebdomadaires), et est donc **reporté**, pas écrasé
+par le pourcentage de la synthèse provinciale. Le générateur reporte tous ces
+champs du gabarit précédent.
 
 ## Validation (reproduction de l'étalon)
 
@@ -46,14 +58,13 @@ Sur le dashboard v9.7 et les canevas S38 :
   (doublons à double tiret, un cas de Sandoa classé sous Lualaba), signalées à la
   province pour correction.
 
-## À reconstituer exactement (TODO)
+## Reste à faire
 
-- `aq26` (% selles adéquates) : le dashboard d'origine le calcule sur la liste
-  linéaire avec sa propre définition d'adéquation. En attendant sa reconstitution
-  exacte, `aq26` est **reporté** du gabarit précédent (non écrasé).
-- `c12` (fenêtre 12 mois) : à recalculer depuis les dates de la liste linéaire.
-- Anonymisation Managers → Public (codes AT-/AP- stables) : à intégrer.
-- Mise à jour de `__META__` (version, semaine, changelog) et du pied de page.
+- `c12` (fenêtre 12 mois glissante) : actuellement reporté ; à recalculer depuis
+  les dates de paralysie de la liste linéaire (fenêtre de 12 mois avant la semaine
+  courante). `t12`/`ta12` se recalculent alors automatiquement.
+- Passe de scoring périodique (`cat`, `flags`, `priority`, `risk_*`, `aq26`) :
+  reportée à chaque hebdomadaire, à rejouer ponctuellement quand nécessaire.
 
 ## Utilisation
 

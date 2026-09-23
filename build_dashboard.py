@@ -100,6 +100,28 @@ def parse_zs_sheet(path):
         out[zn] = {'pop15': pop, 'aq26': aq}
     return out
 
+# ---------------------------------------------------------------- anonymisation & meta
+def anonymize(html):
+    """Version PUBLIC : chaque "Nom (CODE)" devient "CODE" (codes AT-/AP-).
+    Valide : reproduit exactement la version publique de reference (0 nom residuel)."""
+    return re.sub(r'"([^"]*?) \((AT-\d+|AP-\d+)\)"', r'"\2"', html)
+
+def bump_meta(s, meta_version=None, semaine=None, date_maj=None,
+              footer_from=None, footer_to=None, changelog_entry=None):
+    """Met a jour le bandeau __META__ (version, semaine, date), prepend une entree
+    de changelog, et bascule le numero de version du pied de page/titre."""
+    if meta_version:
+        s = re.sub(r'("version":")[0-9.]+(")', r'\g<1>' + meta_version + r'\2', s, count=1)
+    if semaine:
+        s = re.sub(r'("semaine":")[^"]*(")', r'\g<1>' + semaine + r'\2', s, count=1)
+    if date_maj:
+        s = re.sub(r'("date_maj":")[^"]*(")', r'\g<1>' + date_maj + r'\2', s, count=1)
+    if changelog_entry:
+        s = s.replace('"changelog":[', '"changelog":[' + changelog_entry, 1)
+    if footer_from and footer_to:
+        s = s.replace(footer_from, footer_to)
+    return s
+
 # ---------------------------------------------------------------- template I/O
 def extract_block(s, name):
     i = s.find('const ' + name + '=')
@@ -118,7 +140,8 @@ def extract_block(s, name):
 # ---------------------------------------------------------------- generation
 CANEVAS = {}  # prov -> path, rempli par l'appelant
 
-def generate(template_path, canevas, out_path, validate_against=None):
+def generate(template_path, canevas, out_path, validate_against=None,
+             meta=None, public_out=None):
     s = open(template_path, encoding='utf-8').read()
     j, k, dtxt = extract_block(s, 'D')
     D = json.loads(dtxt)
@@ -182,10 +205,24 @@ def generate(template_path, canevas, out_path, validate_against=None):
                 ok = (a == b) or (isinstance(a, float) and isinstance(b, float) and abs(a - b) < 0.05)
                 report[r['p']][f].append((r['z'], a, b, ok))
 
-    # 4) re-injecter D + writes
+    # 4) re-injecter D
     newD = json.dumps(D, ensure_ascii=False, separators=(',', ':'))
     s = s[:j] + newD + s[k + 1:]
+
+    # 5) bandeau __META__ (version, semaine, changelog, pied de page)
+    if meta:
+        s = bump_meta(s, **meta)
+
+    # 6) ecrire la version MANAGERS (noms + codes)
     open(out_path, 'w', encoding='utf-8').write(s)
+
+    # 7) ecrire la version PUBLIC anonymisee (codes seuls), si demandee
+    if public_out:
+        pub = anonymize(s)
+        n_names = len(re.findall(r'"[^"]+ \((?:AT|AP)-\d+\)"', pub))
+        assert n_names == 0, f"anonymisation incomplete : {n_names} noms residuels"
+        open(public_out, 'w', encoding='utf-8').write(pub)
+
     return D, stats, report
 
 if __name__ == '__main__':
@@ -196,11 +233,21 @@ if __name__ == '__main__':
         'Tanganyika':   UP + "bb97fca0-Masque_PFA_-_SEM_38_Tanganyika_VA.xlsx",
         'Lualaba':      UP + "c127d525-Base_Surveillance_PFA_Semaine_38-2026_Lualaba_1.xlsx",
     }
+    meta = {
+        'meta_version': '6.26.0',
+        'semaine': 'S38/2026 (Haut-Katanga, Haut-Lomami, Tanganyika, Lualaba)',
+        'date_maj': '2026-09-23',
+        'footer_from': 'Dashboard PFA v9.7',
+        'footer_to': 'Dashboard PFA v9.8',
+        'changelog_entry': '{"version":"6.26.0","date":"2026-09-23","modifs":["Regeneration complete via le generateur reproductible (depot pfadash-generator) : donnees recalculees a partir des 4 canevas provinciaux S38, scoring reporte, version publique anonymisee produite automatiquement."]},',
+    }
     D, stats, report = generate(
         '/tmp/Dashboard_BlocSud_PFA_Managers_v9.7.html',
         canevas,
-        '/tmp/gen/_regen_test.html',
-        validate_against='/tmp/gt_D.json')
+        '/tmp/gen/_regen_managers.html',
+        validate_against='/tmp/gt_D.json',
+        meta=meta,
+        public_out='/tmp/gen/_regen_public.html')
     print("ZS mises a jour par province:", {p: v[0] for p, v in stats.items()})
     print("\n=== VALIDATION (genere vs dashboard actuel) ===")
     for p in ['Haut-Katanga', 'Haut-Lomami', 'Tanganyika', 'Lualaba']:
