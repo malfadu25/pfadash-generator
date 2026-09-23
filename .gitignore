@@ -1,0 +1,7 @@
+# Aucune donnée sensible ni sortie dans le dépôt
+_regen_test.html
+*.html
+*.xlsx
+__pycache__/
+*.pyc
+gt_D.json
