@@ -58,13 +58,27 @@ Sur le dashboard v9.7 et les canevas S38 :
   (doublons à double tiret, un cas de Sandoa classé sous Lualaba), signalées à la
   province pour correction.
 
-## Reste à faire
+## Champs reportés qui exigent des données hors du canevas hebdomadaire
 
-- `c12` (fenêtre 12 mois glissante) : actuellement reporté ; à recalculer depuis
-  les dates de paralysie de la liste linéaire (fenêtre de 12 mois avant la semaine
-  courante). `t12`/`ta12` se recalculent alors automatiquement.
+Ces champs ne peuvent pas être recalculés à partir des seuls canevas de la semaine
+et sont donc **reportés** du gabarit précédent (comportement correct) :
+
+- `c12` (fenêtre 12 mois glissante) : les canevas hebdomadaires ne couvrent que
+  l'année en cours (2026), or la fenêtre de 12 mois déborde sur fin 2025 (vérifié :
+  34 zones sur 68 ont `c12 > c26`). Son calcul exige une **line list historique
+  multi-années** (type POLIOCASES.csv). Une fois ce fichier fourni, le générateur
+  pourra compter les cas < 15 ans distincts par ZS sur les 12 mois glissants, et
+  `t12`/`ta12` se recalculeront automatiquement.
 - Passe de scoring périodique (`cat`, `flags`, `priority`, `risk_*`, `aq26`) :
-  reportée à chaque hebdomadaire, à rejouer ponctuellement quand nécessaire.
+  indices composites rejoués ponctuellement lors d'une passe séparée.
+
+## Contrôle qualité des canevas (rappel)
+
+Le parseur signale les anomalies de saisie (le dédoublonnage des EPID a révélé,
+dans la base Lualaba S38, des doublons à double tiret, un cas de Sandoa classé
+sous Lualaba, et une date de paralysie erronée en « 2028 »). Toujours présenter
+la réconciliation à l'utilisateur avant d'écrire, et proposer un courriel de
+correction à la province si l'anomalie vient d'elle.
 
 ## Utilisation
 
